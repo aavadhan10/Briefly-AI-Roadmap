@@ -15,6 +15,135 @@ st.set_page_config(
     layout="wide"
 )
 
+# Beautiful custom CSS
+st.markdown("""
+<style>
+    /* Main container */
+    .main {
+        background: linear-gradient(to bottom, #ffffff 0%, #f8f9fa 100%);
+    }
+    
+    /* Headers */
+    h1 {
+        color: #2c3e50 !important;
+        font-family: 'Arial Black', sans-serif !important;
+        font-size: 3rem !important;
+        text-align: center;
+        padding: 2rem 0 1rem 0;
+        border-bottom: 4px solid #3498db;
+        margin-bottom: 2rem;
+    }
+    
+    h2 {
+        color: #34495e !important;
+        font-family: 'Arial Black', sans-serif !important;
+        font-size: 2rem !important;
+        margin-top: 2rem;
+        padding-bottom: 0.5rem;
+        border-bottom: 3px solid #e74c3c;
+    }
+    
+    h3 {
+        color: #2c3e50 !important;
+        font-family: 'Arial', sans-serif !important;
+        font-weight: 700;
+    }
+    
+    /* Selectbox */
+    .stSelectbox > div > div {
+        background-color: white;
+        border: 2px solid #3498db;
+        border-radius: 8px;
+        font-size: 1.1rem;
+        font-weight: 600;
+    }
+    
+    /* Metrics */
+    [data-testid="stMetricValue"] {
+        font-size: 2.5rem !important;
+        font-weight: 800 !important;
+        color: #3498db !important;
+    }
+    
+    [data-testid="stMetricLabel"] {
+        font-size: 1rem !important;
+        font-weight: 600 !important;
+        color: #7f8c8d !important;
+    }
+    
+    /* Metric containers */
+    [data-testid="metric-container"] {
+        background: linear-gradient(135deg, #ffffff 0%, #ecf0f1 100%);
+        padding: 1.5rem;
+        border-radius: 12px;
+        border-left: 5px solid #3498db;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Expanders */
+    .streamlit-expanderHeader {
+        background-color: #ecf0f1 !important;
+        border-radius: 8px;
+        font-size: 1.2rem !important;
+        font-weight: 600 !important;
+        color: #2c3e50 !important;
+        border-left: 5px solid #3498db;
+        padding: 1rem !important;
+    }
+    
+    /* Dataframes */
+    [data-testid="stDataFrame"] {
+        border: 2px solid #bdc3c7;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+    }
+    
+    /* Buttons */
+    .stButton > button {
+        background: linear-gradient(135deg, #3498db 0%, #2980b9 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 2rem;
+        font-size: 1.1rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(52, 152, 219, 0.3);
+        transition: all 0.3s;
+    }
+    
+    .stButton > button:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 6px 16px rgba(52, 152, 219, 0.4);
+    }
+    
+    /* Download button */
+    .stDownloadButton > button {
+        background: linear-gradient(135deg, #2ecc71 0%, #27ae60 100%);
+        color: white;
+        border: none;
+        border-radius: 8px;
+        padding: 0.75rem 2rem;
+        font-size: 1rem;
+        font-weight: 600;
+        box-shadow: 0 4px 12px rgba(46, 204, 113, 0.3);
+    }
+    
+    /* Success/Info boxes */
+    .stSuccess, .stInfo {
+        border-radius: 8px;
+        padding: 1rem;
+        font-weight: 500;
+    }
+    
+    /* Horizontal rule */
+    hr {
+        margin: 2rem 0;
+        border: none;
+        border-top: 2px solid #ecf0f1;
+    }
+</style>
+""", unsafe_allow_html=True)
+
 # ============================================================================
 # PASSWORD
 # ============================================================================
@@ -232,31 +361,36 @@ def create_visual_roadmap(company_name, tasks, tool_requests):
     quarters = ['Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026']
     quarter_positions = {q: i for i, q in enumerate(quarters)}
     
-    # Define swimlanes
-    swimlanes = [
-        'Strategy & Planning',
-        'Build vs Buy',
-        'Initial Demo/POC',
-        'Piloting',
-        'Implementation',
-        'Operations'
-    ]
-    
-    # Color scheme - matching your example
-    colors = {
-        'Strategy & Planning': '#3498db',      # Blue
-        'Build vs Buy': '#e74c3c',            # Red
-        'Initial Demo/POC': '#f39c12',        # Orange
-        'Piloting': '#9b59b6',                # Purple
-        'Implementation': '#2ecc71',          # Green
-        'Operations': '#1abc9c'               # Teal
+    # Quarter colors like your example
+    quarter_colors = {
+        'Q1 2025': '#FF6B9D',  # Pink
+        'Q2 2025': '#FFA500',  # Orange
+        'Q3 2025': '#FFD700',  # Yellow
+        'Q4 2025': '#2ECC71',  # Green
+        'Q1 2026': '#FF6B9D',  # Pink
+        'Q2 2026': '#FFA500',  # Orange
+        'Q3 2026': '#FFD700',  # Yellow
+        'Q4 2026': '#2ECC71'   # Green
     }
     
-    priority_colors = {
-        'P0': '#8B0000',  # Dark red
-        'P1': '#FF4500',  # Orange red
-        'P2': '#FFA500',  # Orange
-        'P3': '#FFD700'   # Gold
+    # Define swimlanes
+    swimlanes = [
+        '🎯 Strategy & Planning',
+        '🔨 Build vs Buy',
+        '🧪 Initial Demo/POC',
+        '🚀 Piloting',
+        '✅ Implementation',
+        '⚙️ Operations'
+    ]
+    
+    # Professional color scheme
+    colors = {
+        '🎯 Strategy & Planning': '#3498db',
+        '🔨 Build vs Buy': '#e74c3c',
+        '🧪 Initial Demo/POC': '#f39c12',
+        '🚀 Piloting': '#9b59b6',
+        '✅ Implementation': '#2ecc71',
+        '⚙️ Operations': '#1abc9c'
     }
     
     fig = go.Figure()
@@ -270,17 +404,17 @@ def create_visual_roadmap(company_name, tasks, tool_requests):
         
         # Map stage to swimlane
         stage_to_lane = {
-            'Discovery': 'Strategy & Planning',
-            'Build vs Buy': 'Build vs Buy',
-            'Initial Demo': 'Initial Demo/POC',
-            'Piloting': 'Piloting',
-            'Implementation': 'Implementation'
+            'Discovery': '🎯 Strategy & Planning',
+            'Build vs Buy': '🔨 Build vs Buy',
+            'Initial Demo': '🧪 Initial Demo/POC',
+            'Piloting': '🚀 Piloting',
+            'Implementation': '✅ Implementation'
         }
         
-        swimlane = stage_to_lane.get(task['Stage'], 'Operations')
+        swimlane = stage_to_lane.get(task['Stage'], '⚙️ Operations')
         
         all_items.append({
-            'name': task['Task'][:40] + ('...' if len(task['Task']) > 40 else ''),
+            'name': task['Task'][:35] + ('...' if len(task['Task']) > 35 else ''),
             'full_name': task['Task'],
             'swimlane': swimlane,
             'quarter': task['Quarter'],
@@ -297,17 +431,17 @@ def create_visual_roadmap(company_name, tasks, tool_requests):
                 continue
             
             stage_to_lane = {
-                'Discovery': 'Strategy & Planning',
-                'Build vs Buy': 'Build vs Buy',
-                'Initial Demo': 'Initial Demo/POC',
-                'Piloting': 'Piloting',
-                'Implementation': 'Implementation'
+                'Discovery': '🎯 Strategy & Planning',
+                'Build vs Buy': '🔨 Build vs Buy',
+                'Initial Demo': '🧪 Initial Demo/POC',
+                'Piloting': '🚀 Piloting',
+                'Implementation': '✅ Implementation'
             }
             
-            swimlane = stage_to_lane.get(row['Stage'], 'Operations')
+            swimlane = stage_to_lane.get(row['Stage'], '⚙️ Operations')
             
             all_items.append({
-                'name': row['Name'][:40] + ('...' if len(row['Name']) > 40 else ''),
+                'name': row['Name'][:35] + ('...' if len(row['Name']) > 35 else ''),
                 'full_name': row['Name'],
                 'swimlane': swimlane,
                 'quarter': row['Target_Quarter'],
@@ -317,26 +451,37 @@ def create_visual_roadmap(company_name, tasks, tool_requests):
                 'department': row.get('Department', 'N/A')
             })
     
-    # Create bars
+    # Sort by priority and quarter
+    all_items.sort(key=lambda x: (x['quarter'], x['priority']))
+    
+    # Create bars with beautiful styling
     for item in all_items:
         x_start = quarter_positions[item['quarter']]
         swimlane = item['swimlane']
         
-        # Determine duration based on stage
-        if swimlane in ['Strategy & Planning', 'Build vs Buy']:
-            duration = 1
-        elif swimlane in ['Initial Demo/POC', 'Piloting']:
+        # Determine duration
+        if swimlane in ['🎯 Strategy & Planning', '🔨 Build vs Buy']:
+            duration = 0.8
+        elif swimlane in ['🧪 Initial Demo/POC']:
+            duration = 1.2
+        elif swimlane in ['🚀 Piloting']:
             duration = 1.5
         else:
-            duration = 2
+            duration = 2.0
         
-        # Color based on priority
+        # Base color from swimlane
         base_color = colors[swimlane]
+        
+        # Adjust opacity based on priority
         if item['priority'] == 'P0':
-            # Make P0 darker/more saturated
-            bar_color = priority_colors['P0']
+            opacity = 1.0
+            border_width = 3
+        elif item['priority'] == 'P1':
+            opacity = 0.85
+            border_width = 2
         else:
-            bar_color = base_color
+            opacity = 0.7
+            border_width = 1
         
         fig.add_trace(go.Bar(
             name=item['name'],
@@ -345,60 +490,110 @@ def create_visual_roadmap(company_name, tasks, tool_requests):
             base=x_start,
             orientation='h',
             marker=dict(
-                color=bar_color,
-                line=dict(color='white', width=2),
-                opacity=0.9 if item['priority'] == 'P0' else 0.8
+                color=base_color,
+                line=dict(color='white', width=border_width),
+                opacity=opacity,
+                pattern_shape="" if item['priority'] != 'P0' else "/"
             ),
-            text=f"{item['priority']}" if item['priority'] == 'P0' else '',
+            text=f"<b>{item['priority']}</b>" if item['priority'] == 'P0' else '',
             textposition='inside',
-            textfont=dict(size=10, color='white', family='Arial Black'),
+            textfont=dict(size=11, color='white', family='Arial Black'),
             hovertemplate=(
-                f"<b>{item['full_name']}</b><br>" +
-                f"Type: {item['type']}<br>" +
-                f"Quarter: {item['quarter']}<br>" +
-                f"Priority: {item['priority']}<br>" +
-                f"Stage: {swimlane}<br>" +
-                (f"Area: {item.get('area', 'N/A')}<br>" if 'area' in item else '') +
-                (f"Tool: {item.get('tool', 'N/A')}<br>" if 'tool' in item else '') +
+                f"<b>{item['full_name']}</b><br><br>" +
+                f"<b>Type:</b> {item['type']}<br>" +
+                f"<b>Quarter:</b> {item['quarter']}<br>" +
+                f"<b>Priority:</b> {item['priority']}<br>" +
+                f"<b>Stage:</b> {swimlane}<br>" +
+                (f"<b>Area:</b> {item.get('area', 'N/A')}<br>" if 'area' in item else '') +
+                (f"<b>Tool:</b> {item.get('tool', 'N/A')}<br>" if 'tool' in item else '') +
+                (f"<b>AI Benefit:</b> {item.get('benefit', 'N/A')[:100]}<br>" if item.get('benefit') and item.get('benefit') != 'N/A' else '') +
                 "<extra></extra>"
             ),
             showlegend=False
         ))
     
-    # Layout
+    # Beautiful layout matching your example
     fig.update_layout(
         title={
-            'text': f'<b>🚀 {company_name} - AI Roadmap 2025-2026</b>',
+            'text': f'<b>PRODUCT DEVELOPMENT ROADMAP</b><br><span style="font-size:18px;">{company_name} - 2025-2026</span>',
             'x': 0.5,
             'xanchor': 'center',
-            'font': {'size': 28, 'color': '#2c3e50', 'family': 'Arial Black'}
+            'y': 0.98,
+            'yanchor': 'top',
+            'font': {'size': 32, 'color': '#2c3e50', 'family': 'Arial Black'}
         },
         xaxis=dict(
-            title='<b>Timeline</b>',
-            titlefont=dict(size=16),
+            title='',
             tickmode='array',
             tickvals=list(range(len(quarters))),
             ticktext=[f'<b>{q}</b>' for q in quarters],
-            tickfont=dict(size=12),
-            gridcolor='rgba(200,200,200,0.3)',
+            tickfont=dict(size=14, color='#2c3e50', family='Arial'),
+            gridcolor='rgba(220,220,220,0.5)',
             showgrid=True,
-            range=[-0.5, len(quarters) - 0.5]
+            range=[-0.3, len(quarters) - 0.3],
+            showline=True,
+            linewidth=2,
+            linecolor='#7f8c8d',
+            zeroline=False
         ),
         yaxis=dict(
             title='',
             categoryorder='array',
             categoryarray=swimlanes[::-1],
-            tickfont=dict(size=13, family='Arial Black'),
-            gridcolor='rgba(200,200,200,0.3)',
-            showgrid=True
+            tickfont=dict(size=14, color='#2c3e50', family='Arial Black'),
+            gridcolor='rgba(220,220,220,0.5)',
+            showgrid=True,
+            showline=True,
+            linewidth=2,
+            linecolor='#7f8c8d'
         ),
         barmode='overlay',
-        height=700,
-        plot_bgcolor='#f8f9fa',
+        height=800,
+        plot_bgcolor='rgba(250,250,250,0.95)',
         paper_bgcolor='white',
         hovermode='closest',
-        margin=dict(l=220, r=50, t=120, b=80)
+        margin=dict(l=250, r=80, t=150, b=100),
+        hoverlabel=dict(
+            bgcolor='white',
+            font_size=13,
+            font_family='Arial',
+            bordercolor='#bdc3c7'
+        ),
+        font=dict(family='Arial', size=12),
+        # Add quarter background colors
+        shapes=[
+            dict(
+                type='rect',
+                xref='x',
+                yref='paper',
+                x0=i-0.5,
+                x1=i+0.5,
+                y0=0,
+                y1=1,
+                fillcolor=quarter_colors[quarters[i]],
+                opacity=0.08,
+                layer='below',
+                line_width=0
+            ) for i in range(len(quarters))
+        ]
     )
+    
+    # Add quarter labels at the bottom
+    for i, q in enumerate(quarters):
+        fig.add_annotation(
+            x=i,
+            y=-0.12,
+            xref='x',
+            yref='paper',
+            text=f'<b>{q}</b>',
+            showarrow=False,
+            font=dict(size=15, color='#2c3e50', family='Arial Black'),
+            bgcolor=quarter_colors[q],
+            borderpad=8,
+            bordercolor='white',
+            borderwidth=2,
+            opacity=0.9
+        )
     
     return fig
 
