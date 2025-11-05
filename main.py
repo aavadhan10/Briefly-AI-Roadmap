@@ -5,6 +5,7 @@ import plotly.graph_objects as go
 from datetime import datetime
 import hashlib
 import io
+import os
 
 # ============================================================================
 # PAGE CONFIGURATION
@@ -651,38 +652,51 @@ def main():
     st.markdown("---")
     
     # ========================================================================
-    # SIDEBAR - DATA UPLOAD & FILTERS
+    # SIDEBAR - AUTO-LOAD DATA FROM REPO
     # ========================================================================
     with st.sidebar:
-        st.markdown("## 📁 Data Upload")
+        st.markdown("## 📁 Data Files")
         st.markdown("---")
         
-        pipeline_file = st.file_uploader(
-            "**Tool Request Pipeline**",
-            type=['xlsx', 'xls'],
-            help="Upload your tool request Excel file"
-        )
+        # Auto-load data files from repo on first run
+        if st.session_state.tool_requests is None:
+            with st.spinner("🔄 Auto-loading data files from repository..."):
+                # Try to load pipeline file
+                pipeline_files = [
+                    'AI_Tool_Request_Pipeline_1762382492.xlsx',
+                    'AI_Tool_Request_Pipeline_1762381302.xlsx',
+                    'AI Tool Request Pipeline.xlsx'
+                ]
+                
+                for filename in pipeline_files:
+                    if os.path.exists(filename):
+                        st.session_state.tool_requests = load_tool_requests(filename)
+                        if st.session_state.tool_requests is not None:
+                            st.success(f"✅ Loaded **{len(st.session_state.tool_requests)}** tool requests from `{filename}`")
+                            st.session_state.changes_made = False
+                            break
+                
+                if st.session_state.tool_requests is None:
+                    st.warning("⚠️ No pipeline file found in repository")
         
-        roadmap_file = st.file_uploader(
-            "**Company Roadmaps** (Optional)",
-            type=['xlsx', 'xls'],
-            help="Upload company-specific roadmap file"
-        )
-        
-        # Load pipeline data
-        if pipeline_file:
-            with st.spinner("🔄 Loading pipeline data..."):
-                st.session_state.tool_requests = load_tool_requests(pipeline_file)
-                if st.session_state.tool_requests is not None:
-                    st.success(f"✅ Loaded **{len(st.session_state.tool_requests)}** tool requests")
-                    st.session_state.changes_made = False
-        
-        # Load roadmap data
-        if roadmap_file:
+        if st.session_state.roadmap_data is None:
             with st.spinner("🔄 Loading roadmap data..."):
-                st.session_state.roadmap_data = load_roadmap_data(roadmap_file)
-                if st.session_state.roadmap_data is not None:
-                    st.success(f"✅ Loaded **{len(st.session_state.roadmap_data)}** company roadmaps")
+                # Try to load roadmap file
+                roadmap_files = [
+                    'AI_Roadmap_-_Accounting_-_Updated_10_1_2025.xlsx',
+                    'AI Roadmap - Accounting - Updated 10.1.2025.xlsx',
+                    'roadmap.xlsx'
+                ]
+                
+                for filename in roadmap_files:
+                    if os.path.exists(filename):
+                        st.session_state.roadmap_data = load_roadmap_data(filename)
+                        if st.session_state.roadmap_data is not None:
+                            st.success(f"✅ Loaded **{len(st.session_state.roadmap_data)}** company roadmaps from `{filename}`")
+                            break
+                
+                if st.session_state.roadmap_data is None:
+                    st.info("ℹ️ No roadmap file found (optional)")
         
         st.markdown("---")
         
@@ -745,7 +759,21 @@ def main():
     
     # Show welcome message if no data loaded
     if st.session_state.tool_requests is None:
-        st.info("👆 **Please upload the Tool Request Pipeline file to begin**")
+        st.error("❌ **No data files found in repository**")
+        st.info("""
+        ### 📦 Required Files
+        
+        Please add these Excel files to your GitHub repository:
+        
+        **Pipeline File** (one of):
+        - `AI_Tool_Request_Pipeline_1762382492.xlsx`
+        - `AI_Tool_Request_Pipeline_1762381302.xlsx`
+        
+        **Roadmap File** (optional):
+        - `AI_Roadmap_-_Accounting_-_Updated_10_1_2025.xlsx`
+        
+        Once added, the app will automatically load them on startup!
+        """)
         
         col1, col2, col3 = st.columns(3)
         with col1:
@@ -772,20 +800,6 @@ def main():
             - Consolidated view
             - Custom tracking
             """)
-        
-        st.markdown("---")
-        st.markdown("""
-        <div style='background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 2rem; border-radius: 12px; color: white; text-align: center;'>
-            <h2 style='color: white; margin-bottom: 1rem;'>Getting Started</h2>
-            <p style='font-size: 1.1rem;'>
-                1. Click <b>Browse files</b> in the sidebar<br>
-                2. Upload your Excel file with tool requests<br>
-                3. Optionally upload company roadmap file<br>
-                4. Use filters to focus on specific items<br>
-                5. Assign tools to quarters and update stages
-            </p>
-        </div>
-        """, unsafe_allow_html=True)
         return
     
     # Get data and apply filters
