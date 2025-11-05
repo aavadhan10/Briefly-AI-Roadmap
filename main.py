@@ -452,7 +452,8 @@ def create_visual_roadmap(company_name, tasks, tool_requests):
             })
     
     # Sort by priority and quarter
-    all_items.sort(key=lambda x: (x['quarter'], x['priority']))
+    priority_order = {'P0': 0, 'P1': 1, 'P2': 2, 'P3': 3}
+    all_items.sort(key=lambda x: (priority_order.get(x['priority'], 4), quarter_positions.get(x['quarter'], 99)))
     
     # Create bars with beautiful styling
     for item in all_items:
@@ -824,3 +825,4 @@ def main():
 
 if __name__ == "__main__":
     main()
+
