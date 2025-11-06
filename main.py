@@ -356,53 +356,32 @@ def load_tool_requests(filepath):
 # VISUAL ROADMAP CREATION
 # ============================================================================
 def create_visual_roadmap(company_name, tasks, tool_requests):
-    """Create visual swimlane roadmap"""
+    """Create beautiful visual swimlane roadmap"""
     
     quarters = ['Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026']
     quarter_positions = {q: i for i, q in enumerate(quarters)}
     
-    # Quarter colors like your example
-    quarter_colors = {
-        'Q1 2025': '#FF6B9D',  # Pink
-        'Q2 2025': '#FFA500',  # Orange
-        'Q3 2025': '#FFD700',  # Yellow
-        'Q4 2025': '#2ECC71',  # Green
-        'Q1 2026': '#FF6B9D',  # Pink
-        'Q2 2026': '#FFA500',  # Orange
-        'Q3 2026': '#FFD700',  # Yellow
-        'Q4 2026': '#2ECC71'   # Green
+    # Professional color scheme - vibrant but clean
+    swimlane_colors = {
+        '🎯 Strategy & Planning': '#5DADE2',    # Sky blue
+        '🔨 Build vs Buy': '#EC7063',           # Coral red
+        '🧪 Initial Demo/POC': '#F39C12',       # Orange
+        '🚀 Piloting': '#BB8FCE',               # Purple
+        '✅ Implementation': '#52BE80',          # Green
+        '⚙️ Operations': '#45B7D1'              # Teal
     }
     
-    # Define swimlanes
-    swimlanes = [
-        '🎯 Strategy & Planning',
-        '🔨 Build vs Buy',
-        '🧪 Initial Demo/POC',
-        '🚀 Piloting',
-        '✅ Implementation',
-        '⚙️ Operations'
-    ]
-    
-    # Professional color scheme
-    colors = {
-        '🎯 Strategy & Planning': '#3498db',
-        '🔨 Build vs Buy': '#e74c3c',
-        '🧪 Initial Demo/POC': '#f39c12',
-        '🚀 Piloting': '#9b59b6',
-        '✅ Implementation': '#2ecc71',
-        '⚙️ Operations': '#1abc9c'
-    }
+    swimlanes = list(swimlane_colors.keys())
     
     fig = go.Figure()
     
     all_items = []
     
-    # Add roadmap tasks
+    # Collect all items
     for task in tasks:
         if task['Quarter'] not in quarter_positions:
             continue
         
-        # Map stage to swimlane
         stage_to_lane = {
             'Discovery': '🎯 Strategy & Planning',
             'Build vs Buy': '🔨 Build vs Buy',
@@ -414,17 +393,16 @@ def create_visual_roadmap(company_name, tasks, tool_requests):
         swimlane = stage_to_lane.get(task['Stage'], '⚙️ Operations')
         
         all_items.append({
-            'name': task['Task'][:35] + ('...' if len(task['Task']) > 35 else ''),
+            'name': task['Task'][:40] + '...' if len(task['Task']) > 40 else task['Task'],
             'full_name': task['Task'],
             'swimlane': swimlane,
             'quarter': task['Quarter'],
             'priority': task['Priority'],
-            'type': 'Roadmap Task',
+            'type': 'Task',
             'area': task.get('Area', 'N/A'),
             'benefit': task.get('AI_Benefit', 'N/A')
         })
     
-    # Add tool requests
     if tool_requests is not None:
         for _, row in tool_requests.iterrows():
             if row['Target_Quarter'] not in quarter_positions:
@@ -441,12 +419,12 @@ def create_visual_roadmap(company_name, tasks, tool_requests):
             swimlane = stage_to_lane.get(row['Stage'], '⚙️ Operations')
             
             all_items.append({
-                'name': row['Name'][:35] + ('...' if len(row['Name']) > 35 else ''),
+                'name': row['Name'][:40] + '...' if len(row['Name']) > 40 else row['Name'],
                 'full_name': row['Name'],
                 'swimlane': swimlane,
                 'quarter': row['Target_Quarter'],
                 'priority': row.get('Priority', 'P2'),
-                'type': 'Tool Request',
+                'type': 'Tool',
                 'tool': row.get('Tool', 'TBD'),
                 'department': row.get('Department', 'N/A')
             })
@@ -455,145 +433,140 @@ def create_visual_roadmap(company_name, tasks, tool_requests):
     priority_order = {'P0': 0, 'P1': 1, 'P2': 2, 'P3': 3}
     all_items.sort(key=lambda x: (priority_order.get(x['priority'], 4), quarter_positions.get(x['quarter'], 99)))
     
-    # Create bars with beautiful styling
+    # Create beautiful bars
     for item in all_items:
         x_start = quarter_positions[item['quarter']]
         swimlane = item['swimlane']
         
-        # Determine duration
-        if swimlane in ['🎯 Strategy & Planning', '🔨 Build vs Buy']:
-            duration = 0.8
-        elif swimlane in ['🧪 Initial Demo/POC']:
-            duration = 1.2
-        elif swimlane in ['🚀 Piloting']:
-            duration = 1.5
+        # Smart duration based on priority and type
+        if item['priority'] == 'P0':
+            duration = 0.9
+        elif item['priority'] == 'P1':
+            duration = 1.0
         else:
-            duration = 2.0
+            duration = 0.8
         
-        # Base color from swimlane
-        base_color = colors[swimlane]
+        # Color and styling
+        base_color = swimlane_colors[swimlane]
         
-        # Adjust opacity based on priority
+        # Priority-based styling
         if item['priority'] == 'P0':
             opacity = 1.0
             border_width = 3
+            border_color = '#C0392B'
         elif item['priority'] == 'P1':
-            opacity = 0.85
+            opacity = 0.9
             border_width = 2
+            border_color = 'white'
         else:
-            opacity = 0.7
+            opacity = 0.75
             border_width = 1
+            border_color = 'white'
         
         fig.add_trace(go.Bar(
-            name=item['name'],
             x=[duration],
             y=[swimlane],
             base=x_start,
             orientation='h',
             marker=dict(
                 color=base_color,
-                line=dict(color='white', width=border_width),
-                opacity=opacity,
-                pattern_shape="" if item['priority'] != 'P0' else "/"
+                line=dict(color=border_color, width=border_width),
+                opacity=opacity
             ),
-            text=f"<b>{item['priority']}</b>" if item['priority'] == 'P0' else '',
+            text='',
             textposition='inside',
-            textfont=dict(size=11, color='white', family='Arial Black'),
             hovertemplate=(
-                f"<b>{item['full_name']}</b><br><br>" +
+                f"<b style='font-size:14px'>{item['full_name']}</b><br><br>" +
                 f"<b>Type:</b> {item['type']}<br>" +
                 f"<b>Quarter:</b> {item['quarter']}<br>" +
-                f"<b>Priority:</b> {item['priority']}<br>" +
-                f"<b>Stage:</b> {swimlane}<br>" +
-                (f"<b>Area:</b> {item.get('area', 'N/A')}<br>" if 'area' in item else '') +
-                (f"<b>Tool:</b> {item.get('tool', 'N/A')}<br>" if 'tool' in item else '') +
-                (f"<b>AI Benefit:</b> {item.get('benefit', 'N/A')[:100]}<br>" if item.get('benefit') and item.get('benefit') != 'N/A' else '') +
+                f"<b>Priority:</b> <span style='color:red;font-weight:bold'>{item['priority']}</span><br>" +
+                f"<b>Lane:</b> {swimlane}<br>" +
+                (f"<b>Area:</b> {item.get('area', 'N/A')}<br>" if item.get('area') != 'N/A' else '') +
+                (f"<b>Tool:</b> {item.get('tool', 'N/A')}<br>" if item.get('tool') else '') +
                 "<extra></extra>"
             ),
-            showlegend=False
+            showlegend=False,
+            name=item['name']
         ))
     
-    # Beautiful layout matching your example
+    # Beautiful layout
     fig.update_layout(
         title={
-            'text': f'<b>PRODUCT DEVELOPMENT ROADMAP</b><br><span style="font-size:18px;">{company_name} - 2025-2026</span>',
+            'text': f"<b style='font-size:32px; letter-spacing:2px'>PRODUCT DEVELOPMENT ROADMAP</b><br><span style='font-size:18px; color:#7f8c8d'>{company_name}</span>",
             'x': 0.5,
             'xanchor': 'center',
-            'y': 0.98,
-            'yanchor': 'top',
-            'font': {'size': 32, 'color': '#2c3e50', 'family': 'Arial Black'}
+            'y': 0.97,
+            'yanchor': 'top'
         },
         xaxis=dict(
             title='',
             tickmode='array',
             tickvals=list(range(len(quarters))),
-            ticktext=[f'<b>{q}</b>' for q in quarters],
-            tickfont=dict(size=14, color='#2c3e50', family='Arial'),
-            gridcolor='rgba(220,220,220,0.5)',
+            ticktext=[''] * len(quarters),  # Remove top labels
             showgrid=True,
-            range=[-0.3, len(quarters) - 0.3],
+            gridcolor='rgba(189, 195, 199, 0.3)',
+            gridwidth=1,
+            range=[-0.1, len(quarters) - 0.1],
             showline=True,
             linewidth=2,
-            linecolor='#7f8c8d',
+            linecolor='#95a5a6',
             zeroline=False
         ),
         yaxis=dict(
             title='',
             categoryorder='array',
             categoryarray=swimlanes[::-1],
-            tickfont=dict(size=14, color='#2c3e50', family='Arial Black'),
-            gridcolor='rgba(220,220,220,0.5)',
+            tickfont=dict(size=13, color='#2c3e50', family='Arial'),
             showgrid=True,
+            gridcolor='rgba(189, 195, 199, 0.3)',
+            gridwidth=1,
             showline=True,
             linewidth=2,
-            linecolor='#7f8c8d'
+            linecolor='#95a5a6'
         ),
         barmode='overlay',
-        height=800,
-        plot_bgcolor='rgba(250,250,250,0.95)',
-        paper_bgcolor='white',
+        height=650,
+        plot_bgcolor='#ffffff',
+        paper_bgcolor='#f8f9fa',
         hovermode='closest',
-        margin=dict(l=250, r=80, t=150, b=100),
+        margin=dict(l=230, r=80, t=140, b=120),
         hoverlabel=dict(
             bgcolor='white',
-            font_size=13,
+            font_size=12,
             font_family='Arial',
-            bordercolor='#bdc3c7'
-        ),
-        font=dict(family='Arial', size=12),
-        # Add quarter background colors
-        shapes=[
-            dict(
-                type='rect',
-                xref='x',
-                yref='paper',
-                x0=i-0.5,
-                x1=i+0.5,
-                y0=0,
-                y1=1,
-                fillcolor=quarter_colors[quarters[i]],
-                opacity=0.08,
-                layer='below',
-                line_width=0
-            ) for i in range(len(quarters))
-        ]
+            bordercolor='#3498db'
+        )
     )
     
-    # Add quarter labels at the bottom
+    # Add beautiful quarter badges at bottom
+    quarter_colors_bottom = ['#FF6B9D', '#FFA500', '#FFD700', '#2ECC71', '#FF6B9D', '#FFA500', '#FFD700', '#2ECC71']
+    
     for i, q in enumerate(quarters):
         fig.add_annotation(
             x=i,
-            y=-0.12,
+            y=-0.15,
             xref='x',
             yref='paper',
             text=f'<b>{q}</b>',
             showarrow=False,
-            font=dict(size=15, color='#2c3e50', family='Arial Black'),
-            bgcolor=quarter_colors[q],
-            borderpad=8,
+            font=dict(size=13, color='white', family='Arial Black'),
+            bgcolor=quarter_colors_bottom[i],
+            borderpad=10,
             bordercolor='white',
             borderwidth=2,
-            opacity=0.9
+            opacity=1
+        )
+    
+    # Add subtle vertical lines between quarters
+    for i in range(len(quarters) - 1):
+        fig.add_shape(
+            type='line',
+            x0=i + 0.5,
+            x1=i + 0.5,
+            y0=0,
+            y1=1,
+            yref='paper',
+            line=dict(color='rgba(149, 165, 166, 0.2)', width=1, dash='dot')
         )
     
     return fig
