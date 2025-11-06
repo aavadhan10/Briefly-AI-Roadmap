@@ -1,6 +1,5 @@
 import streamlit as st
 import pandas as pd
-import plotly.graph_objects as go
 from datetime import datetime
 import hashlib
 import os
@@ -13,27 +12,6 @@ st.set_page_config(
     page_icon="🚀",
     layout="wide"
 )
-
-# Beautiful CSS
-st.markdown("""
-<style>
-    .main {
-        background: #f5f5f5;
-    }
-    h1 {
-        color: #2c3e50 !important;
-        font-family: 'Arial Black', sans-serif !important;
-        text-align: center;
-        padding: 2rem 0;
-    }
-    .stSelectbox > div > div {
-        border: 2px solid #3498db;
-        border-radius: 8px;
-        font-size: 1.1rem;
-        font-weight: 600;
-    }
-</style>
-""", unsafe_allow_html=True)
 
 # ============================================================================
 # PASSWORD
@@ -57,10 +35,9 @@ def check_password():
     return True
 
 # ============================================================================
-# DATA LOADING & PROCESSING
+# DATA PROCESSING
 # ============================================================================
 def extract_tasks_from_roadmap(df, company_name):
-    """Extract tasks from company roadmap"""
     tasks = []
     task_row_idx = None
     
@@ -85,126 +62,62 @@ def extract_tasks_from_roadmap(df, company_name):
                 'Company': company_name,
                 'Area': f'Area #{area_num}',
                 'Task': str(task_desc).strip(),
-                'AI_Benefit': str(ai_benefit).strip() if pd.notna(ai_benefit) else None,
-                'Priority': None,
-                'Quarter': None,
-                'Stage': None
+                'AI_Benefit': str(ai_benefit).strip() if pd.notna(ai_benefit) else None
             })
     
     return tasks
 
-def prioritize_tasks(tasks):
-    """Smart prioritization"""
-    high_priority_words = ['manual', 'time-consuming', 'error', 'repetitive', 'copy', 'paste', 'spreadsheet']
-    medium_priority_words = ['report', 'update', 'review', 'tracking']
-    automation_words = ['automat', 'ai', 'reduce time', 'efficiency']
+def prioritize_and_assign(tasks):
+    """Prioritize and assign quarters and stages"""
+    high_words = ['manual', 'time-consuming', 'error', 'repetitive', 'copy', 'paste', 'spreadsheet']
     
-    for task in tasks:
-        task_lower = task['Task'].lower()
-        benefit_lower = task['AI_Benefit'].lower() if task['AI_Benefit'] else ''
-        
-        score = 0
-        for word in high_priority_words:
-            if word in task_lower:
-                score += 3
-        for word in automation_words:
-            if word in benefit_lower:
-                score += 2
-        for word in medium_priority_words:
-            if word in task_lower:
-                score += 1
-        
-        if score >= 6:
-            task['Priority'] = 'P0'
-        elif score >= 4:
-            task['Priority'] = 'P1'
-        elif score >= 2:
-            task['Priority'] = 'P2'
-        else:
-            task['Priority'] = 'P3'
-        
-        if any(word in task_lower for word in ['evaluate', 'compare', 'choose']):
-            task['Stage'] = 'Strategy'
-        elif any(word in task_lower for word in ['test', 'trial', 'poc', 'demo']):
-            task['Stage'] = 'Planning'
-        elif any(word in task_lower for word in ['pilot', 'beta']):
-            task['Stage'] = 'Development'
-        elif any(word in task_lower for word in ['implement', 'rollout', 'deploy']):
-            task['Stage'] = 'Launch'
-        else:
-            task['Stage'] = 'Planning'
-    
-    return tasks
-
-def assign_quarters(tasks):
-    """Assign quarters based on priority"""
     quarters = ['Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026']
+    stages = ['Planning', 'Strategy', 'Strategy', 'Strategy']
     
-    p0_tasks = [t for t in tasks if t['Priority'] == 'P0']
-    p1_tasks = [t for t in tasks if t['Priority'] == 'P1']
-    p2_tasks = [t for t in tasks if t['Priority'] == 'P2']
-    p3_tasks = [t for t in tasks if t['Priority'] == 'P3']
-    
-    for i, task in enumerate(p0_tasks):
-        task['Quarter'] = 'Q1 2025' if i % 2 == 0 else 'Q2 2025'
-    
-    for i, task in enumerate(p1_tasks):
-        task['Quarter'] = 'Q2 2025' if i % 2 == 0 else 'Q3 2025'
-    
-    for i, task in enumerate(p2_tasks):
-        task['Quarter'] = 'Q3 2025' if i % 2 == 0 else 'Q4 2025'
-    
-    for i, task in enumerate(p3_tasks):
-        task['Quarter'] = quarters[4 + (i % 4)]
+    for idx, task in enumerate(tasks):
+        task_lower = task['Task'].lower()
+        
+        score = sum(1 for word in high_words if word in task_lower)
+        
+        if score >= 3:
+            task['Priority'] = 'P0'
+        elif score >= 2:
+            task['Priority'] = 'P1'
+        else:
+            task['Priority'] = 'P2'
+        
+        # Assign quarter
+        task['Quarter'] = quarters[idx % len(quarters)]
+        
+        # Assign stage
+        task['Stage'] = stages[idx % len(stages)]
     
     return tasks
 
 def load_tool_requests(filepath):
-    """Load tool requests"""
     try:
         df = pd.read_excel(filepath, header=1)
         df = df.rename(columns={
             df.columns[0]: 'Name',
             df.columns[2]: 'Stakeholder',
-            df.columns[3]: 'Department',
             df.columns[5]: 'Target_Quarter',
-            df.columns[8]: 'Phase',
             df.columns[9]: 'Priority'
         })
         
         df = df[df['Name'].notna()]
-        df = df[~df['Name'].astype(str).str.contains('Name|Subitems|📥|🧭|💰|📈|💻', na=False)]
+        df = df[~df['Name'].astype(str).str.contains('Name|Subitems|📥', na=False)]
         
         for idx, row in df.iterrows():
-            phase = str(row.get('Phase', '')).lower()
-            if 'pilot' in phase:
-                df.at[idx, 'Stage'] = 'Development'
-            elif 'demo' in phase or 'poc' in phase:
-                df.at[idx, 'Stage'] = 'Planning'
-            elif 'implement' in phase:
-                df.at[idx, 'Stage'] = 'Launch'
-            else:
-                df.at[idx, 'Stage'] = 'Strategy'
-            
-            if pd.isna(row.get('Target_Quarter')) or row['Target_Quarter'] == 'Not Assigned Yet':
-                priority = str(row.get('Priority', 'P2')).upper()
-                if priority == 'P0':
-                    df.at[idx, 'Target_Quarter'] = 'Q1 2025'
-                elif priority == 'P1':
-                    df.at[idx, 'Target_Quarter'] = 'Q2 2025'
-                elif priority == 'P2':
-                    df.at[idx, 'Target_Quarter'] = 'Q3 2025'
-                else:
-                    df.at[idx, 'Target_Quarter'] = 'Q4 2025'
+            if pd.isna(row.get('Target_Quarter')) or str(row['Target_Quarter']) == 'Not Assigned Yet':
+                df.at[idx, 'Target_Quarter'] = 'Q1 2025'
+            df.at[idx, 'Stage'] = 'Planning'
         
         return df.reset_index(drop=True)
-    except Exception as e:
-        st.error(f"Error loading: {e}")
+    except:
         return None
 
 @st.cache_data
 def load_all_data():
-    """Load all data"""
     data = {'tool_requests': None, 'companies': {}}
     
     pipeline_files = ['AI_Tool_Request_Pipeline_1762382492.xlsx', 'AI_Tool_Request_Pipeline_1762381302.xlsx']
@@ -224,8 +137,7 @@ def load_all_data():
                     df = pd.read_excel(f, sheet_name=sheet_name)
                     tasks = extract_tasks_from_roadmap(df, company_name)
                     if tasks:
-                        tasks = prioritize_tasks(tasks)
-                        tasks = assign_quarters(tasks)
+                        tasks = prioritize_and_assign(tasks)
                         data['companies'][company_name] = {'tasks': tasks}
                 break
             except:
@@ -234,164 +146,252 @@ def load_all_data():
     return data
 
 # ============================================================================
-# TIMELINE ROADMAP VISUALIZATION
+# HTML ROADMAP GENERATOR
 # ============================================================================
-def create_timeline_roadmap(company_name, tasks, tool_requests):
-    """Create timeline-style roadmap like your example"""
+def create_html_roadmap(company_name, tasks, tool_requests):
+    """Create beautiful HTML roadmap"""
     
-    quarters = ['Q1 2025', 'Q2 2025', 'Q3 2025', 'Q4 2025', 'Q1 2026', 'Q2 2026', 'Q3 2026', 'Q4 2026']
-    stages = ['Strategy', 'Planning', 'Development', 'Launch']
-    
-    # Colors for each stage
-    stage_colors = {
-        'Strategy': '#E8B04B',   # Gold/Yellow
-        'Planning': '#5DADE2',   # Blue
-        'Development': '#82C785', # Green  
-        'Launch': '#C594C5'       # Purple
+    quarters_2025 = ['Quarter 1', 'Quarter 2', 'Quarter 3', 'Quarter 4']
+    quarters_2026 = ['Quarter 1', 'Quarter 2', 'Quarter 3', 'Quarter 4']
+    quarter_map = {
+        'Q1 2025': 'Quarter 1', 'Q2 2025': 'Quarter 2', 'Q3 2025': 'Quarter 3', 'Q4 2025': 'Quarter 4',
+        'Q1 2026': 'Quarter 1', 'Q2 2026': 'Quarter 2', 'Q3 2026': 'Quarter 3', 'Q4 2026': 'Quarter 4'
     }
     
-    # Quarter colors for headers
-    quarter_header_colors = ['#82C785', '#82C785', '#82C785', '#82C785', '#C594C5', '#C594C5', '#C594C5', '#C594C5']
+    stages = ['Planning', 'Strategy', 'Strategy', 'Strategy']
+    stage_colors = {
+        'Planning': '#5B7EBD',
+        'Strategy': ['#D4A574', '#82B366', '#B17FB8']
+    }
     
-    fig = go.Figure()
-    
-    # Collect all items
-    all_items = {}
-    for stage in stages:
-        all_items[stage] = {q: [] for q in quarters}
+    # Organize data
+    roadmap_data = {
+        'Planning': {q: [] for q in quarters_2025 + quarters_2026},
+        'Strategy 1': {q: [] for q in quarters_2025 + quarters_2026},
+        'Strategy 2': {q: [] for q in quarters_2025 + quarters_2026},
+        'Strategy 3': {q: [] for q in quarters_2025 + quarters_2026}
+    }
     
     # Add tasks
+    strategy_counters = [0, 0, 0]
     for task in tasks:
-        if task['Quarter'] in quarters and task['Stage'] in stages:
-            all_items[task['Stage']][task['Quarter']].append({
-                'text': task['Task'][:60] + '...' if len(task['Task']) > 60 else task['Task'],
-                'full_text': task['Task'],
-                'priority': task['Priority'],
-                'type': 'Task',
-                'area': task.get('Area', '')
-            })
+        q_name = quarter_map.get(task['Quarter'])
+        if not q_name:
+            continue
+        
+        if task['Stage'] == 'Planning':
+            roadmap_data['Planning'][q_name].append(task)
+        elif task['Stage'] == 'Strategy':
+            # Distribute across 3 strategy rows
+            idx = strategy_counters[0] % 3
+            roadmap_data[f'Strategy {idx+1}'][q_name].append(task)
+            strategy_counters[0] += 1
     
     # Add tool requests
     if tool_requests is not None:
         for _, row in tool_requests.iterrows():
-            quarter = row['Target_Quarter']
-            stage = row.get('Stage', 'Planning')
-            if quarter in quarters and stage in stages:
-                all_items[stage][quarter].append({
-                    'text': row['Name'][:60] + '...' if len(row['Name']) > 60 else row['Name'],
-                    'full_text': row['Name'],
-                    'priority': row.get('Priority', 'P2'),
-                    'type': 'Tool',
-                    'dept': row.get('Department', '')
+            q_name = quarter_map.get(row['Target_Quarter'])
+            if q_name:
+                roadmap_data['Planning'][q_name].append({
+                    'Task': row['Name'],
+                    'Priority': row.get('Priority', 'P2'),
+                    'Stage': 'Planning'
                 })
     
-    # Create grid with boxes
-    y_position = len(stages) - 1
+    # Generate HTML
+    html = f"""
+    <style>
+        .roadmap-container {{
+            font-family: Arial, sans-serif;
+            background: linear-gradient(135deg, #6B9080 0%, #7A9E8F 100%);
+            padding: 30px;
+            border-radius: 12px;
+            box-shadow: 0 8px 32px rgba(0,0,0,0.2);
+        }}
+        .roadmap-header {{
+            background: rgba(107, 144, 128, 0.95);
+            color: white;
+            padding: 25px;
+            border-radius: 8px 8px 0 0;
+            margin-bottom: 2px;
+        }}
+        .roadmap-title {{
+            font-size: 36px;
+            font-weight: bold;
+            margin: 0;
+            letter-spacing: 2px;
+        }}
+        .roadmap-subtitle {{
+            font-size: 16px;
+            margin: 8px 0 0 0;
+            opacity: 0.9;
+        }}
+        .roadmap-grid {{
+            display: table;
+            width: 100%;
+            background: white;
+            border-collapse: collapse;
+        }}
+        .roadmap-row {{
+            display: table-row;
+        }}
+        .roadmap-cell {{
+            display: table-cell;
+            border: 2px solid #e0e0e0;
+            padding: 15px;
+            vertical-align: top;
+            background: #fafafa;
+            min-height: 150px;
+            position: relative;
+        }}
+        .roadmap-cell.year-header {{
+            background: linear-gradient(135deg, #82B366 0%, #6B9E78 100%);
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+            text-align: center;
+            padding: 15px;
+            border: none;
+        }}
+        .roadmap-cell.year-header.year2 {{
+            background: linear-gradient(135deg, #B17FB8 0%, #9B6BA3 100%);
+        }}
+        .roadmap-cell.quarter-header {{
+            background: #f0f0f0;
+            font-weight: 600;
+            font-size: 13px;
+            text-align: center;
+            padding: 10px;
+            color: #666;
+        }}
+        .roadmap-cell.quarter-goal {{
+            background: #FFF9E6;
+            font-size: 11px;
+            font-style: italic;
+            text-align: center;
+            padding: 8px;
+            color: #888;
+            min-height: 40px;
+        }}
+        .roadmap-cell.stage-label {{
+            background: linear-gradient(135deg, #5B7EBD 0%, #4A6BA8 100%);
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+            text-align: center;
+            padding: 20px;
+            border: none;
+            writing-mode: horizontal-tb;
+            min-width: 140px;
+        }}
+        .roadmap-cell.stage-label.strategy1 {{
+            background: linear-gradient(135deg, #D4A574 0%, #C19563 100%);
+        }}
+        .roadmap-cell.stage-label.strategy2 {{
+            background: linear-gradient(135deg, #82B366 0%, #6B9E78 100%);
+        }}
+        .roadmap-cell.stage-label.strategy3 {{
+            background: linear-gradient(135deg, #B17FB8 0%, #9B6BA3 100%);
+        }}
+        .task-card {{
+            background: #5B7EBD;
+            color: white;
+            padding: 12px;
+            margin: 8px 0;
+            border-radius: 6px;
+            font-size: 12px;
+            line-height: 1.4;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            transition: transform 0.2s;
+        }}
+        .task-card:hover {{
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }}
+        .task-card.strategy1 {{
+            background: #D4A574;
+        }}
+        .task-card.strategy2 {{
+            background: #82B366;
+        }}
+        .task-card.strategy3 {{
+            background: #B17FB8;
+        }}
+        .task-card.priority-p0 {{
+            border: 3px solid #E74C3C;
+            font-weight: bold;
+        }}
+    </style>
     
-    for stage_idx, stage in enumerate(stages):
-        for q_idx, quarter in enumerate(quarters):
-            items = all_items[stage][quarter]
-            
-            # Draw cell background
-            fig.add_shape(
-                type='rect',
-                x0=q_idx,
-                x1=q_idx + 1,
-                y0=y_position - 0.45,
-                y1=y_position + 0.45,
-                fillcolor='#f8f9fa',
-                line=dict(color='#ddd', width=1),
-                layer='below'
-            )
-            
-            # Add items as boxes in the cell
-            for item_idx, item in enumerate(items[:3]):  # Max 3 items per cell
-                box_y = y_position + 0.3 - (item_idx * 0.25)
-                box_height = 0.2
-                
-                # Box color based on priority
-                if item['priority'] == 'P0':
-                    box_color = stage_colors[stage]
-                    box_opacity = 1.0
-                else:
-                    box_color = stage_colors[stage]
-                    box_opacity = 0.7
-                
-                # Add box
-                fig.add_shape(
-                    type='rect',
-                    x0=q_idx + 0.05,
-                    x1=q_idx + 0.95,
-                    y0=box_y - box_height/2,
-                    y1=box_y + box_height/2,
-                    fillcolor=box_color,
-                    opacity=box_opacity,
-                    line=dict(color='white', width=2)
-                )
-                
-                # Add text
-                fig.add_annotation(
-                    x=q_idx + 0.5,
-                    y=box_y,
-                    text=f"<b>{item['text'][:35]}</b>",
-                    showarrow=False,
-                    font=dict(size=9, color='white', family='Arial'),
-                    xanchor='center',
-                    yanchor='middle',
-                    hoverlabel=dict(bgcolor='white')
-                )
+    <div class="roadmap-container">
+        <div class="roadmap-header">
+            <div class="roadmap-title">Product Roadmap</div>
+            <div class="roadmap-subtitle">Map out the timeline of {company_name}'s project</div>
+        </div>
         
-        y_position -= 1
+        <div class="roadmap-grid">
+            <!-- Year Headers -->
+            <div class="roadmap-row">
+                <div class="roadmap-cell" style="border:none; background:transparent;"></div>
+                <div class="roadmap-cell year-header" colspan="4">YEAR 1 - 2025</div>
+                <div class="roadmap-cell year-header year2" colspan="4">YEAR 2 - 2026</div>
+            </div>
+            
+            <!-- Quarter Headers -->
+            <div class="roadmap-row">
+                <div class="roadmap-cell" style="border:none; background:transparent;"></div>
+                {''.join(f'<div class="roadmap-cell quarter-header">{q}</div>' for q in quarters_2025)}
+                {''.join(f'<div class="roadmap-cell quarter-header">{q}</div>' for q in quarters_2026)}
+            </div>
+            
+            <!-- Quarter Goals -->
+            <div class="roadmap-row">
+                <div class="roadmap-cell" style="border:none; background:transparent;"></div>
+                {''.join('<div class="roadmap-cell quarter-goal">Insert your team\'s goal for this quarter</div>' for _ in range(8))}
+            </div>
+            
+            <!-- Planning Row -->
+            <div class="roadmap-row">
+                <div class="roadmap-cell stage-label">Planning</div>
+    """
     
-    # Layout
-    fig.update_layout(
-        title={
-            'text': f"<b style='font-size:36px'>PRODUCT ROADMAP</b><br><span style='font-size:18px'>{company_name} - 2025-2026</span>",
-            'x': 0.5,
-            'xanchor': 'center',
-            'font': {'color': 'white'}
-        },
-        xaxis=dict(
-            tickmode='array',
-            tickvals=[i + 0.5 for i in range(len(quarters))],
-            ticktext=[f'<b>{q}</b>' for q in quarters],
-            tickfont=dict(size=12, color='white'),
-            showgrid=False,
-            range=[0, len(quarters)],
-            showline=False,
-            zeroline=False
-        ),
-        yaxis=dict(
-            tickmode='array',
-            tickvals=list(range(len(stages))),
-            ticktext=[f'<b>{s}</b>' for s in stages[::-1]],
-            tickfont=dict(size=14, color='white', family='Arial Black'),
-            showgrid=False,
-            range=[-0.5, len(stages) - 0.5],
-            showline=False,
-            zeroline=False
-        ),
-        height=700,
-        plot_bgcolor='#6B9E78',
-        paper_bgcolor='#6B9E78',
-        margin=dict(l=150, r=50, t=150, b=80),
-        hovermode='closest'
-    )
+    # Add Planning cells
+    for q in quarters_2025 + quarters_2026:
+        items = roadmap_data['Planning'][q]
+        html += '<div class="roadmap-cell">'
+        for item in items[:2]:  # Max 2 per cell
+            task_text = item['Task'][:50] + '...' if len(item['Task']) > 50 else item['Task']
+            priority_class = f"priority-{item.get('Priority', 'P2').lower()}"
+            html += f'<div class="task-card {priority_class}">{task_text}</div>'
+        html += '</div>'
     
-    # Add quarter color headers
-    for i, (q, color) in enumerate(zip(quarters, quarter_header_colors)):
-        fig.add_shape(
-            type='rect',
-            x0=i,
-            x1=i+1,
-            y0=len(stages) - 0.5,
-            y1=len(stages) + 0.3,
-            fillcolor=color,
-            line=dict(width=0),
-            layer='below'
-        )
+    html += '</div>'
     
-    return fig
+    # Strategy rows
+    for i in range(3):
+        stage_name = f'Strategy {i+1}'
+        html += f'''
+            <div class="roadmap-row">
+                <div class="roadmap-cell stage-label strategy{i+1}">Strategy</div>
+        '''
+        
+        for q in quarters_2025 + quarters_2026:
+            items = roadmap_data[stage_name][q]
+            html += '<div class="roadmap-cell">'
+            for item in items[:2]:
+                task_text = item['Task'][:50] + '...' if len(item['Task']) > 50 else item['Task']
+                priority_class = f"priority-{item.get('Priority', 'P2').lower()}"
+                html += f'<div class="task-card strategy{i+1} {priority_class}">{task_text}</div>'
+            html += '</div>'
+        
+        html += '</div>'
+    
+    html += '''
+        </div>
+    </div>
+    '''
+    
+    return html
 
 # ============================================================================
 # MAIN APP
@@ -400,13 +400,10 @@ def main():
     if not check_password():
         return
     
-    st.title("🚀 Briefly AI 2025-2026 Roadmap")
-    st.markdown("---")
-    
     with st.spinner("📊 Loading data..."):
         data = load_all_data()
     
-    if not data['companies'] and data['tool_requests'] is None:
+    if not data['companies']:
         st.error("❌ No data found")
         return
     
@@ -433,8 +430,8 @@ def main():
         for company_data in data['companies'].values():
             all_tasks.extend(company_data['tasks'])
         
-        fig = create_timeline_roadmap('All Companies', all_tasks, data['tool_requests'])
-        st.plotly_chart(fig, use_container_width=True)
+        html = create_html_roadmap('All Companies', all_tasks, data['tool_requests'])
+        st.markdown(html, unsafe_allow_html=True)
     else:
         company_name = selected_view.replace('🏢 ', '')
         if company_name in data['companies']:
@@ -446,8 +443,11 @@ def main():
                     data['tool_requests']['Stakeholder'].astype(str).str.contains(company_name, case=False, na=False)
                 ]
             
-            fig = create_timeline_roadmap(company_name, company_data['tasks'], company_tools)
-            st.plotly_chart(fig, use_container_width=True)
+            html = create_html_roadmap(company_name, company_data['tasks'], company_tools)
+            st.markdown(html, unsafe_allow_html=True)
+    
+    st.markdown("---")
+    st.markdown(f"*Last updated: {datetime.now().strftime('%Y-%m-%d %H:%M:%S')}*")
 
 if __name__ == "__main__":
     main()
