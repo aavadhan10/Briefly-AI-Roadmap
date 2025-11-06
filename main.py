@@ -347,7 +347,13 @@ def create_html_roadmap(company_name, tasks, tool_requests):
             <!-- Quarter Goals -->
             <div class="roadmap-row">
                 <div class="roadmap-cell" style="border:none; background:transparent;"></div>
-                {''.join('<div class="roadmap-cell quarter-goal">Insert your team\'s goal for this quarter</div>' for _ in range(8))}
+    """
+    
+    # Add quarter goal cells
+    for _ in range(8):
+        html += '<div class="roadmap-cell quarter-goal">Insert your team\'s goal for this quarter</div>'
+    
+    html += """
             </div>
             
             <!-- Planning Row -->
